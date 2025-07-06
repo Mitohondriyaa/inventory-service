@@ -1,0 +1,15 @@
+package io.github.mitohondriyaa.inventory.service;
+
+import io.github.mitohondriyaa.inventory.repository.InventoryRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class InventoryService {
+    private final InventoryRepository inventoryRepository;
+
+    public boolean isInStock(String skuCode, Integer quantity) {
+        return inventoryRepository.existsBySkuCodeAndQuantityIsGreaterOrEqual(skuCode, quantity);
+    }
+}
