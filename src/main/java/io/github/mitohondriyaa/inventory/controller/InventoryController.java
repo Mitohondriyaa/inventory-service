@@ -25,4 +25,10 @@ public class InventoryController {
     public InventoryResponse createInventory(@RequestBody InventoryRequest inventoryRequest) {
         return inventoryService.createInventory(inventoryRequest);
     }
+
+    @GetMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public InventoryResponse getInventoryById(@PathVariable Long id) {
+        return inventoryService.getInventoryById(id);
+    }
 }
