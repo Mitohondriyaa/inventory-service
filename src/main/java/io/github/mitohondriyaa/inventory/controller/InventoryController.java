@@ -20,12 +20,6 @@ public class InventoryController {
         return inventoryService.isInStock(skuCode, quantity);
     }
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public InventoryResponse createInventory(@RequestBody InventoryRequest inventoryRequest) {
-        return inventoryService.createInventory(inventoryRequest);
-    }
-
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public InventoryResponse getInventoryById(@PathVariable Long id) {
@@ -36,11 +30,5 @@ public class InventoryController {
     @ResponseStatus(HttpStatus.OK)
     public InventoryResponse updateInventoryById(@PathVariable Long id, @RequestBody InventoryRequest inventoryRequest) {
         return inventoryService.updateInventoryById(id, inventoryRequest);
-    }
-
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteInventoryById(@PathVariable Long id) {
-        inventoryService.deleteInventoryById(id);
     }
 }
