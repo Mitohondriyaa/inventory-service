@@ -1,5 +1,6 @@
 package io.github.mitohondriyaa.inventory.config;
 
+import io.github.mitohondriyaa.inventory.converter.KeycloakRealmRoleConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -18,8 +19,9 @@ public class SecurityConfig {
                 )
                 .permitAll()
                 .anyRequest()
-                .authenticated())
-            .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
+                .hasRole("INVENTORY_MANAGER"))
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(new KeycloakRealmRoleConverter())))
             .build();
     }
 }
