@@ -1,5 +1,8 @@
 package io.github.mitohondriyaa.inventory.controller;
 
+import io.github.mitohondriyaa.inventory.dto.InventoryRequest;
+import io.github.mitohondriyaa.inventory.dto.InventoryResponse;
+import io.github.mitohondriyaa.inventory.model.Inventory;
 import io.github.mitohondriyaa.inventory.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,5 +18,11 @@ public class InventoryController {
     @ResponseStatus(HttpStatus.OK)
     public boolean isInStock(@RequestParam String skuCode, @RequestParam Integer quantity) {
         return inventoryService.isInStock(skuCode, quantity);
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public InventoryResponse createInventory(@RequestBody InventoryRequest inventoryRequest) {
+        return inventoryService.createInventory(inventoryRequest);
     }
 }

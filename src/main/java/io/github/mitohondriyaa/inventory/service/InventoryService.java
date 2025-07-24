@@ -1,8 +1,12 @@
 package io.github.mitohondriyaa.inventory.service;
 
+import io.github.mitohondriyaa.inventory.dto.InventoryRequest;
+import io.github.mitohondriyaa.inventory.dto.InventoryResponse;
+import io.github.mitohondriyaa.inventory.model.Inventory;
 import io.github.mitohondriyaa.inventory.repository.InventoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Service
 @RequiredArgsConstructor
@@ -11,5 +15,20 @@ public class InventoryService {
 
     public boolean isInStock(String skuCode, Integer quantity) {
         return inventoryRepository.existsBySkuCodeAndQuantityIsGreaterThanEqual(skuCode, quantity);
+    }
+
+    public InventoryResponse createInventory(InventoryRequest inventoryRequest) {
+        Inventory inventory = Inventory.builder()
+            .skuCode(inventoryRequest.skuCode())
+            .quantity(inventoryRequest.quantity())
+            .build();
+
+        inventory = inventoryRepository.save(inventory);
+
+        return new InventoryResponse(
+            inventory.getId(),
+            inventory.getSkuCode(),
+            inventory.getQuantity()
+        );
     }
 }
