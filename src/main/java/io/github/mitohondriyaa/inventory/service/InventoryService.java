@@ -43,4 +43,20 @@ public class InventoryService {
             inventory.getQuantity()
         );
     }
+
+    public InventoryResponse updateInventoryById(Long id, InventoryRequest inventoryRequest) {
+        Inventory inventory = inventoryRepository.findById(id)
+            .orElseThrow(() -> new NotFoundException("Inventory not found"));
+
+        inventory.setSkuCode(inventoryRequest.skuCode());
+        inventory.setQuantity(inventoryRequest.quantity());
+
+        inventoryRepository.save(inventory);
+
+        return new InventoryResponse(
+            inventory.getId(),
+            inventory.getSkuCode(),
+            inventory.getQuantity()
+        );
+    }
 }

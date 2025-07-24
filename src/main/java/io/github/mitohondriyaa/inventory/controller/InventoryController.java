@@ -31,4 +31,10 @@ public class InventoryController {
     public InventoryResponse getInventoryById(@PathVariable Long id) {
         return inventoryService.getInventoryById(id);
     }
+
+    @PutMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public InventoryResponse updateInventoryById(@PathVariable Long id, @RequestBody InventoryRequest inventoryRequest) {
+        return inventoryService.updateInventoryById(id, inventoryRequest);
+    }
 }
