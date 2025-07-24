@@ -59,4 +59,11 @@ public class InventoryService {
             inventory.getQuantity()
         );
     }
+
+    public void deleteInventoryById(Long id) {
+        Inventory inventory = inventoryRepository.findById(id)
+            .orElseThrow(() -> new NotFoundException("Inventory not found"));
+
+        inventoryRepository.delete(inventory);
+    }
 }
