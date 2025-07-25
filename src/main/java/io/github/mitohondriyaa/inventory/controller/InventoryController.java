@@ -18,8 +18,8 @@ public class InventoryController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public boolean isInStock(@RequestParam String skuCode, @RequestParam Integer quantity) {
-        return inventoryService.isInStock(skuCode, quantity);
+    public boolean isInStock(@RequestParam String productId, @RequestParam Integer quantity) {
+        return inventoryService.isInStock(productId, quantity);
     }
 
     @GetMapping
@@ -28,15 +28,15 @@ public class InventoryController {
         return inventoryService.getAllInventories();
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{productId}")
     @ResponseStatus(HttpStatus.OK)
-    public InventoryResponse getInventoryById(@PathVariable Long id) {
-        return inventoryService.getInventoryById(id);
+    public InventoryResponse getInventoryById(@PathVariable String productId) {
+        return inventoryService.getInventoryByProductID(productId);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{productId}")
     @ResponseStatus(HttpStatus.OK)
-    public InventoryResponse updateInventoryById(@PathVariable Long id, @RequestBody InventoryRequest inventoryRequest) {
-        return inventoryService.updateInventoryById(id, inventoryRequest);
+    public InventoryResponse updateInventoryById(@PathVariable String productId, @RequestBody InventoryRequest inventoryRequest) {
+        return inventoryService.updateInventoryByProductId(productId, inventoryRequest);
     }
 }

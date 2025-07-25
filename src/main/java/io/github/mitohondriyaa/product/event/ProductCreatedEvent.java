@@ -13,10 +13,10 @@ import org.apache.avro.message.SchemaStore;
 
 @org.apache.avro.specific.AvroGenerated
 public class ProductCreatedEvent extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
-  private static final long serialVersionUID = -7290248499976131038L;
+  private static final long serialVersionUID = 829466680004572901L;
 
 
-  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"ProductCreatedEvent\",\"namespace\":\"io.github.mitohondriyaa.product.event\",\"fields\":[{\"name\":\"skuCode\",\"type\":\"string\"}]}");
+  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"ProductCreatedEvent\",\"namespace\":\"io.github.mitohondriyaa.product.event\",\"fields\":[{\"name\":\"productId\",\"type\":\"string\"}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
 
   private static final SpecificData MODEL$ = new SpecificData();
@@ -72,7 +72,7 @@ public class ProductCreatedEvent extends org.apache.avro.specific.SpecificRecord
     return DECODER.decode(b);
   }
 
-  private java.lang.CharSequence skuCode;
+  private java.lang.CharSequence productId;
 
   /**
    * Default constructor.  Note that this does not initialize fields
@@ -83,10 +83,10 @@ public class ProductCreatedEvent extends org.apache.avro.specific.SpecificRecord
 
   /**
    * All-args constructor.
-   * @param skuCode The new value for skuCode
+   * @param productId The new value for productId
    */
-  public ProductCreatedEvent(java.lang.CharSequence skuCode) {
-    this.skuCode = skuCode;
+  public ProductCreatedEvent(java.lang.CharSequence productId) {
+    this.productId = productId;
   }
 
   @Override
@@ -99,7 +99,7 @@ public class ProductCreatedEvent extends org.apache.avro.specific.SpecificRecord
   @Override
   public java.lang.Object get(int field$) {
     switch (field$) {
-    case 0: return skuCode;
+    case 0: return productId;
     default: throw new IndexOutOfBoundsException("Invalid index: " + field$);
     }
   }
@@ -109,26 +109,26 @@ public class ProductCreatedEvent extends org.apache.avro.specific.SpecificRecord
   @SuppressWarnings(value="unchecked")
   public void put(int field$, java.lang.Object value$) {
     switch (field$) {
-    case 0: skuCode = (java.lang.CharSequence)value$; break;
+    case 0: productId = (java.lang.CharSequence)value$; break;
     default: throw new IndexOutOfBoundsException("Invalid index: " + field$);
     }
   }
 
   /**
-   * Gets the value of the 'skuCode' field.
-   * @return The value of the 'skuCode' field.
+   * Gets the value of the 'productId' field.
+   * @return The value of the 'productId' field.
    */
-  public java.lang.CharSequence getSkuCode() {
-    return skuCode;
+  public java.lang.CharSequence getProductId() {
+    return productId;
   }
 
 
   /**
-   * Sets the value of the 'skuCode' field.
+   * Sets the value of the 'productId' field.
    * @param value the value to set.
    */
-  public void setSkuCode(java.lang.CharSequence value) {
-    this.skuCode = value;
+  public void setProductId(java.lang.CharSequence value) {
+    this.productId = value;
   }
 
   /**
@@ -172,7 +172,7 @@ public class ProductCreatedEvent extends org.apache.avro.specific.SpecificRecord
   public static class Builder extends org.apache.avro.specific.SpecificRecordBuilderBase<ProductCreatedEvent>
     implements org.apache.avro.data.RecordBuilder<ProductCreatedEvent> {
 
-    private java.lang.CharSequence skuCode;
+    private java.lang.CharSequence productId;
 
     /** Creates a new Builder */
     private Builder() {
@@ -185,8 +185,8 @@ public class ProductCreatedEvent extends org.apache.avro.specific.SpecificRecord
      */
     private Builder(io.github.mitohondriyaa.product.event.ProductCreatedEvent.Builder other) {
       super(other);
-      if (isValidValue(fields()[0], other.skuCode)) {
-        this.skuCode = data().deepCopy(fields()[0].schema(), other.skuCode);
+      if (isValidValue(fields()[0], other.productId)) {
+        this.productId = data().deepCopy(fields()[0].schema(), other.productId);
         fieldSetFlags()[0] = other.fieldSetFlags()[0];
       }
     }
@@ -197,48 +197,48 @@ public class ProductCreatedEvent extends org.apache.avro.specific.SpecificRecord
      */
     private Builder(io.github.mitohondriyaa.product.event.ProductCreatedEvent other) {
       super(SCHEMA$, MODEL$);
-      if (isValidValue(fields()[0], other.skuCode)) {
-        this.skuCode = data().deepCopy(fields()[0].schema(), other.skuCode);
+      if (isValidValue(fields()[0], other.productId)) {
+        this.productId = data().deepCopy(fields()[0].schema(), other.productId);
         fieldSetFlags()[0] = true;
       }
     }
 
     /**
-      * Gets the value of the 'skuCode' field.
+      * Gets the value of the 'productId' field.
       * @return The value.
       */
-    public java.lang.CharSequence getSkuCode() {
-      return skuCode;
+    public java.lang.CharSequence getProductId() {
+      return productId;
     }
 
 
     /**
-      * Sets the value of the 'skuCode' field.
-      * @param value The value of 'skuCode'.
+      * Sets the value of the 'productId' field.
+      * @param value The value of 'productId'.
       * @return This builder.
       */
-    public io.github.mitohondriyaa.product.event.ProductCreatedEvent.Builder setSkuCode(java.lang.CharSequence value) {
+    public io.github.mitohondriyaa.product.event.ProductCreatedEvent.Builder setProductId(java.lang.CharSequence value) {
       validate(fields()[0], value);
-      this.skuCode = value;
+      this.productId = value;
       fieldSetFlags()[0] = true;
       return this;
     }
 
     /**
-      * Checks whether the 'skuCode' field has been set.
-      * @return True if the 'skuCode' field has been set, false otherwise.
+      * Checks whether the 'productId' field has been set.
+      * @return True if the 'productId' field has been set, false otherwise.
       */
-    public boolean hasSkuCode() {
+    public boolean hasProductId() {
       return fieldSetFlags()[0];
     }
 
 
     /**
-      * Clears the value of the 'skuCode' field.
+      * Clears the value of the 'productId' field.
       * @return This builder.
       */
-    public io.github.mitohondriyaa.product.event.ProductCreatedEvent.Builder clearSkuCode() {
-      skuCode = null;
+    public io.github.mitohondriyaa.product.event.ProductCreatedEvent.Builder clearProductId() {
+      productId = null;
       fieldSetFlags()[0] = false;
       return this;
     }
@@ -248,7 +248,7 @@ public class ProductCreatedEvent extends org.apache.avro.specific.SpecificRecord
     public ProductCreatedEvent build() {
       try {
         ProductCreatedEvent record = new ProductCreatedEvent();
-        record.skuCode = fieldSetFlags()[0] ? this.skuCode : (java.lang.CharSequence) defaultValue(fields()[0]);
+        record.productId = fieldSetFlags()[0] ? this.productId : (java.lang.CharSequence) defaultValue(fields()[0]);
         return record;
       } catch (org.apache.avro.AvroMissingFieldException e) {
         throw e;
@@ -281,7 +281,7 @@ public class ProductCreatedEvent extends org.apache.avro.specific.SpecificRecord
   @Override public void customEncode(org.apache.avro.io.Encoder out)
     throws java.io.IOException
   {
-    out.writeString(this.skuCode);
+    out.writeString(this.productId);
 
   }
 
@@ -290,13 +290,13 @@ public class ProductCreatedEvent extends org.apache.avro.specific.SpecificRecord
   {
     org.apache.avro.Schema.Field[] fieldOrder = in.readFieldOrderIfDiff();
     if (fieldOrder == null) {
-      this.skuCode = in.readString(this.skuCode instanceof Utf8 ? (Utf8)this.skuCode : null);
+      this.productId = in.readString(this.productId instanceof Utf8 ? (Utf8)this.productId : null);
 
     } else {
       for (int i = 0; i < 1; i++) {
         switch (fieldOrder[i].pos()) {
         case 0:
-          this.skuCode = in.readString(this.skuCode instanceof Utf8 ? (Utf8)this.skuCode : null);
+          this.productId = in.readString(this.productId instanceof Utf8 ? (Utf8)this.productId : null);
           break;
 
         default:

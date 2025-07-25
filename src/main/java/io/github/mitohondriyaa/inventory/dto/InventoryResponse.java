@@ -1,3 +1,3 @@
 package io.github.mitohondriyaa.inventory.dto;
 
-public record InventoryResponse(Long id, String skuCode, Integer quantity) {}
+public record InventoryResponse(Long id, String productId, Integer quantity) {}
