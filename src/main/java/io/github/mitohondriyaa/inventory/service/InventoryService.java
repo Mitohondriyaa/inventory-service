@@ -6,6 +6,7 @@ import io.github.mitohondriyaa.inventory.exception.NotFoundException;
 import io.github.mitohondriyaa.inventory.model.Inventory;
 import io.github.mitohondriyaa.inventory.repository.InventoryRepository;
 import io.github.mitohondriyaa.product.event.ProductCreatedEvent;
+import io.github.mitohondriyaa.product.event.ProductDeletedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
@@ -66,5 +67,10 @@ public class InventoryService {
             inventory.getProductId(),
             inventory.getQuantity()
         );
+    }
+
+    @KafkaListener(topics = "product-deleted")
+    public void deleteInventoryByProductID(ProductDeletedEvent productDeletedEvent) {
+        inventoryRepository.deleteByProductId(productDeletedEvent.getProductId().toString());
     }
 }

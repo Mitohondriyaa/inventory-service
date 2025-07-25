@@ -1,0 +1,11 @@
+{
+    "type": "record",
+    "name": "ProductDeletedEvent",
+    "namespace": "io.github.mitohondriyaa.product.event",
+    "fields": [
+        {
+            "name": "productId",
+            "type": "string"
+        }
+    ]
+}
