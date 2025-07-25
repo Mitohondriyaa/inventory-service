@@ -1,0 +1,11 @@
+{
+    "type": "record",
+    "name": "ProductCreatedEvent",
+    "namespace": "io.github.mitohondriyaa.product.event",
+    "fields": [
+        {
+            "name": "skuCode",
+            "type": "string"
+        }
+    ]
+}
