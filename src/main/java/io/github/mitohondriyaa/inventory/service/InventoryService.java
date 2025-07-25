@@ -9,28 +9,22 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class InventoryService {
     private final InventoryRepository inventoryRepository;
 
-    public boolean isInStock(String skuCode, Integer quantity) {
-        return inventoryRepository.existsBySkuCodeAndQuantityIsGreaterThanEqual(skuCode, quantity);
+    public List<InventoryResponse> getAllInventories() {
+        return inventoryRepository.findAll()
+            .stream()
+            .map(inventory -> new InventoryResponse(inventory.getId(), inventory.getSkuCode(), inventory.getQuantity()))
+            .toList();
     }
 
-    public InventoryResponse createInventory(InventoryRequest inventoryRequest) {
-        Inventory inventory = Inventory.builder()
-            .skuCode(inventoryRequest.skuCode())
-            .quantity(inventoryRequest.quantity())
-            .build();
-
-        inventory = inventoryRepository.save(inventory);
-
-        return new InventoryResponse(
-            inventory.getId(),
-            inventory.getSkuCode(),
-            inventory.getQuantity()
-        );
+    public boolean isInStock(String skuCode, Integer quantity) {
+        return inventoryRepository.existsBySkuCodeAndQuantityIsGreaterThanEqual(skuCode, quantity);
     }
 
     public InventoryResponse getInventoryById(Long id) {
@@ -58,12 +52,5 @@ public class InventoryService {
             inventory.getSkuCode(),
             inventory.getQuantity()
         );
-    }
-
-    public void deleteInventoryById(Long id) {
-        Inventory inventory = inventoryRepository.findById(id)
-            .orElseThrow(() -> new NotFoundException("Inventory not found"));
-
-        inventoryRepository.delete(inventory);
     }
 }
