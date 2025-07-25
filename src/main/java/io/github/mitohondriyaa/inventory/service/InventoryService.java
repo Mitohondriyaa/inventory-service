@@ -5,7 +5,9 @@ import io.github.mitohondriyaa.inventory.dto.InventoryResponse;
 import io.github.mitohondriyaa.inventory.exception.NotFoundException;
 import io.github.mitohondriyaa.inventory.model.Inventory;
 import io.github.mitohondriyaa.inventory.repository.InventoryRepository;
+import io.github.mitohondriyaa.product.event.ProductCreatedEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -15,6 +17,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class InventoryService {
     private final InventoryRepository inventoryRepository;
+
+    @KafkaListener(topics = "product-created")
+    public void createInventory(ProductCreatedEvent productCreatedEvent) {
+        Inventory inventory = Inventory.builder()
+            .skuCode(productCreatedEvent.getSkuCode().toString())
+            .quantity(0)
+            .build();
+
+        inventoryRepository.save(inventory);
+    }
 
     public List<InventoryResponse> getAllInventories() {
         return inventoryRepository.findAll()
