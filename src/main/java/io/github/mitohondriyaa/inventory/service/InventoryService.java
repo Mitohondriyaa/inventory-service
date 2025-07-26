@@ -61,8 +61,8 @@ public class InventoryService {
         );
     }
 
-    public InventoryResponse updateInventoryByProductId(String productId, InventoryRequest inventoryRequest) {
-        Inventory inventory = inventoryRepository.findByProductId(productId)
+    public InventoryResponse updateInventoryByProductId(InventoryRequest inventoryRequest) {
+        Inventory inventory = inventoryRepository.findByProductId(inventoryRequest.productId())
             .orElseThrow(() -> new NotFoundException("Inventory not found"));
 
         inventory.setProductId(inventoryRequest.productId());

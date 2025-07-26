@@ -34,9 +34,9 @@ public class InventoryController {
         return inventoryService.getInventoryByProductID(productId);
     }
 
-    @PutMapping("/{productId}")
+    @PutMapping
     @ResponseStatus(HttpStatus.OK)
-    public InventoryResponse updateInventoryById(@PathVariable String productId, @RequestBody InventoryRequest inventoryRequest) {
-        return inventoryService.updateInventoryByProductId(productId, inventoryRequest);
+    public InventoryResponse updateInventoryById(@RequestBody InventoryRequest inventoryRequest) {
+        return inventoryService.updateInventoryByProductId(inventoryRequest);
     }
 }
