@@ -2,6 +2,7 @@ package io.github.mitohondriyaa.inventory.service;
 
 import io.github.mitohondriyaa.inventory.dto.InventoryRequest;
 import io.github.mitohondriyaa.inventory.dto.InventoryResponse;
+import io.github.mitohondriyaa.inventory.exception.NotEnoughInventoryException;
 import io.github.mitohondriyaa.inventory.exception.NotFoundException;
 import io.github.mitohondriyaa.inventory.model.Inventory;
 import io.github.mitohondriyaa.inventory.repository.InventoryRepository;
@@ -38,8 +39,15 @@ public class InventoryService {
     }
 
     @KafkaListener(topics = "order-placed")
-    public void deductStock() {
+    public void deductStock(OrderPlacedEvent orderPlacedEvent) {
+        Integer updated = inventoryRepository.decreseQuantityIfEnough(
+            orderPlacedEvent.getProductId().toString(),
+            orderPlacedEvent.getQuantity()
+        );
 
+        if (updated == 0) {
+            throw new NotEnoughInventoryException("Not enough inventory for product id " + orderPlacedEvent.getProductId());
+        }
     }
 
     public List<InventoryResponse> getAllInventories() {
