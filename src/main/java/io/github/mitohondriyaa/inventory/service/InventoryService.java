@@ -31,11 +31,7 @@ public class InventoryService {
             .quantity(0)
             .build();
 
-        try {
-            inventoryRepository.save(inventory);
-        } catch (DataIntegrityViolationException exception) {
-            log.error("Inventory already exists for product id {}", productCreatedEvent.getProductId());
-        }
+        inventoryRepository.save(inventory);
     }
 
     @KafkaListener(topics = "order-placed")
@@ -93,13 +89,6 @@ public class InventoryService {
 
     @KafkaListener(topics = "product-deleted")
     public void deleteInventoryByProductID(ProductDeletedEvent productDeletedEvent) {
-        try {
-            inventoryRepository.deleteByProductId(productDeletedEvent.getProductId().toString());
-        } catch (Exception exception) {
-            log.error(
-                "Failed to delete inventory for productId {}",
-                productDeletedEvent.getProductId()
-            );
-        }
+        inventoryRepository.deleteByProductId(productDeletedEvent.getProductId().toString());
     }
 }
