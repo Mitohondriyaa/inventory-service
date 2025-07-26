@@ -10,6 +10,7 @@ import io.github.mitohondriyaa.product.event.ProductDeletedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -70,6 +71,7 @@ public class InventoryService {
     }
 
     @KafkaListener(topics = "product-deleted")
+    @Transactional
     public void deleteInventoryByProductID(ProductDeletedEvent productDeletedEvent) {
         inventoryRepository.deleteByProductId(productDeletedEvent.getProductId().toString());
     }
