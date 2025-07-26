@@ -8,12 +8,15 @@ import io.github.mitohondriyaa.inventory.repository.InventoryRepository;
 import io.github.mitohondriyaa.product.event.ProductCreatedEvent;
 import io.github.mitohondriyaa.product.event.ProductDeletedEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class InventoryService {
@@ -26,7 +29,11 @@ public class InventoryService {
             .quantity(0)
             .build();
 
-        inventoryRepository.save(inventory);
+        try {
+            inventoryRepository.save(inventory);
+        } catch (DataIntegrityViolationException exception) {
+            log.error("Inventory already exists for product id {}", productCreatedEvent.getProductId());
+        }
     }
 
     public List<InventoryResponse> getAllInventories() {
@@ -73,6 +80,13 @@ public class InventoryService {
     @KafkaListener(topics = "product-deleted")
     @Transactional
     public void deleteInventoryByProductID(ProductDeletedEvent productDeletedEvent) {
-        inventoryRepository.deleteByProductId(productDeletedEvent.getProductId().toString());
+        try {
+            inventoryRepository.deleteByProductId(productDeletedEvent.getProductId().toString());
+        } catch (Exception exception) {
+            log.error(
+                "Failed to delete inventory for productId {}",
+                productDeletedEvent.getProductId()
+            );
+        }
     }
 }
