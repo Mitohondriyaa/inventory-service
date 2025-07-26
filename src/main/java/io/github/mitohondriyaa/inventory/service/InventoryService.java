@@ -36,6 +36,11 @@ public class InventoryService {
         }
     }
 
+    @KafkaListener(topics = "order-placed")
+    public void deductStock() {
+
+    }
+
     public List<InventoryResponse> getAllInventories() {
         return inventoryRepository.findAll()
             .stream()

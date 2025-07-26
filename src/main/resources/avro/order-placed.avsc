@@ -1,0 +1,31 @@
+{
+    "type": "record",
+    "name": "OrderPlacedEvent",
+    "namespace": "io.github.mitohondriyaa.order.event",
+    "fields": [
+        {
+            "name": "orderNumber",
+            "type": "string"
+        },
+        {
+            "name": "productId",
+            "type": "string"
+        },
+        {
+            "name": "quantity",
+            "type": "int"
+        },
+        {
+            "name": "email",
+            "type": "string"
+        },
+        {
+            "name": "firstName",
+            "type": "string"
+        },
+        {
+            "name": "lastName",
+            "type": "string"
+        }
+    ]
+}
