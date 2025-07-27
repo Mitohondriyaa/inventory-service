@@ -6,6 +6,7 @@ import io.github.mitohondriyaa.inventory.exception.NotEnoughInventoryException;
 import io.github.mitohondriyaa.inventory.exception.NotFoundException;
 import io.github.mitohondriyaa.inventory.model.Inventory;
 import io.github.mitohondriyaa.inventory.repository.InventoryRepository;
+import io.github.mitohondriyaa.order.event.OrderCancelledEvent;
 import io.github.mitohondriyaa.order.event.OrderPlacedEvent;
 import io.github.mitohondriyaa.product.event.ProductCreatedEvent;
 import io.github.mitohondriyaa.product.event.ProductDeletedEvent;
@@ -36,7 +37,7 @@ public class InventoryService {
 
     @KafkaListener(topics = "order-placed")
     public void deductStock(OrderPlacedEvent orderPlacedEvent) {
-        Integer updated = inventoryRepository.decreseQuantityIfEnough(
+        Integer updated = inventoryRepository.decreaseQuantityIfEnough(
             orderPlacedEvent.getProductId().toString(),
             orderPlacedEvent.getQuantity()
         );
@@ -90,5 +91,13 @@ public class InventoryService {
     @KafkaListener(topics = "product-deleted")
     public void deleteInventoryByProductID(ProductDeletedEvent productDeletedEvent) {
         inventoryRepository.deleteByProductId(productDeletedEvent.getProductId().toString());
+    }
+
+    @KafkaListener(topics = "order-cancelled")
+    public void orderCancelled(OrderCancelledEvent orderCancelledEvent) {
+        inventoryRepository.increaseQuantityByProductId(
+            orderCancelledEvent.getProductId().toString(),
+            orderCancelledEvent.getQuantity()
+        );
     }
 }

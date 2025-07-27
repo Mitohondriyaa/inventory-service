@@ -22,7 +22,18 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         SET i.quantity = i.quantity - :quantity
         WHERE i.productId = :productId AND i.quantity >= :quantity
 """)
-    Integer decreseQuantityIfEnough(
+    Integer decreaseQuantityIfEnough(
+        @Param("productId") String productId,
+        @Param("quantity") Integer quantity
+    );
+    @Transactional
+    @Modifying
+    @Query("""
+        UPDATE Inventory i
+        SET i.quantity = i.quantity + :quantity
+        WHERE i.productId = :productId
+""")
+    void increaseQuantityByProductId(
         @Param("productId") String productId,
         @Param("quantity") Integer quantity
     );
