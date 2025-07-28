@@ -1,6 +1,7 @@
 package io.github.mitohondriyaa.inventory.config;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
@@ -38,5 +39,15 @@ public class KafkaConfig {
         factory.setCommonErrorHandler(errorHandler);
 
         return factory;
+    }
+
+    @Bean
+    public NewTopic inventoryReservedTopic() {
+        return new NewTopic("inventory-reserved", 3, (short) 2);
+    }
+
+    @Bean
+    public NewTopic inventoryRejectedTopic() {
+        return new NewTopic("inventory-rejected", 3, (short) 2);
     }
 }
