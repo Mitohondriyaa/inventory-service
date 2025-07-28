@@ -2,6 +2,8 @@ package io.github.mitohondriyaa.inventory.service;
 
 import io.github.mitohondriyaa.inventory.dto.InventoryRequest;
 import io.github.mitohondriyaa.inventory.dto.InventoryResponse;
+import io.github.mitohondriyaa.inventory.event.InventoryRejectedEvent;
+import io.github.mitohondriyaa.inventory.event.InventoryReservedEvent;
 import io.github.mitohondriyaa.inventory.exception.NotEnoughInventoryException;
 import io.github.mitohondriyaa.inventory.exception.NotFoundException;
 import io.github.mitohondriyaa.inventory.model.Inventory;
@@ -14,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +27,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class InventoryService {
     private final InventoryRepository inventoryRepository;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @KafkaListener(topics = "product-created")
     public void createInventory(ProductCreatedEvent productCreatedEvent) {
@@ -43,7 +47,39 @@ public class InventoryService {
         );
 
         if (updated == 0) {
-            throw new NotEnoughInventoryException("Not enough inventory for product id " + orderPlacedEvent.getProductId());
+            InventoryRejectedEvent inventoryRejectedEvent
+                = new InventoryRejectedEvent();
+            inventoryRejectedEvent.setOrderNumber(
+                orderPlacedEvent.getOrderNumber()
+            );
+            inventoryRejectedEvent.setEmail(
+                orderPlacedEvent.getEmail()
+            );
+            inventoryRejectedEvent.setFirstName(
+                orderPlacedEvent.getFirstName()
+            );
+            inventoryRejectedEvent.setLastName(
+                orderPlacedEvent.getLastName()
+            );
+
+            kafkaTemplate.send("inventory-rejected", inventoryRejectedEvent);
+        } else {
+            InventoryReservedEvent inventoryReservedEvent
+                = new InventoryReservedEvent();
+            inventoryReservedEvent.setOrderNumber(
+                orderPlacedEvent.getOrderNumber()
+            );
+            inventoryReservedEvent.setEmail(
+                orderPlacedEvent.getEmail()
+            );
+            inventoryReservedEvent.setFirstName(
+                orderPlacedEvent.getFirstName()
+            );
+            inventoryReservedEvent.setLastName(
+                orderPlacedEvent.getLastName()
+            );
+
+            kafkaTemplate.sendDefault(inventoryReservedEvent);
         }
     }
 
