@@ -135,5 +135,22 @@ public class InventoryService {
             orderCancelledEvent.getProductId().toString(),
             orderCancelledEvent.getQuantity()
         );
+
+        InventoryRejectedEvent inventoryRejectedEvent
+            = new InventoryRejectedEvent();
+        inventoryRejectedEvent.setOrderNumber(
+            orderCancelledEvent.getOrderNumber()
+        );
+        inventoryRejectedEvent.setEmail(
+            orderCancelledEvent.getEmail()
+        );
+        inventoryRejectedEvent.setFirstName(
+            orderCancelledEvent.getFirstName()
+        );
+        inventoryRejectedEvent.setLastName(
+            orderCancelledEvent.getLastName()
+        );
+
+        kafkaTemplate.send("inventory-rejected", inventoryRejectedEvent);
     }
 }
