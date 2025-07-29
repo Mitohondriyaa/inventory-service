@@ -1,14 +1,15 @@
 package io.github.mitohondriyaa.inventory;
 
 import io.github.mitohondriyaa.inventory.service.InventoryService;
+import io.github.mitohondriyaa.order.event.OrderPlacedEvent;
 import io.github.mitohondriyaa.product.event.ProductCreatedEvent;
 import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
 import lombok.RequiredArgsConstructor;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -16,6 +17,7 @@ import org.springframework.context.Lifecycle;
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -120,6 +122,53 @@ class InventoryServiceApplicationTests {
 		Awaitility.await().atMost(Duration.ofSeconds(5))
 			.untilAsserted(() -> verify(inventoryService)
 				.createInventory(any()));
+	}
+
+	@Test
+	void shouldDeductStockWhenQuantityIsEnough() throws InterruptedException {
+		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
+		productCreatedEvent.setProductId("a876af73h3uf3hj");
+
+		kafkaTemplate.send("product-created", productCreatedEvent);
+
+		Awaitility.await().atMost(Duration.ofSeconds(5))
+			.untilAsserted(() -> verify(inventoryService)
+				.createInventory(any()));
+
+		String requestBody = """
+			{
+				"productId": "a876af73h3uf3hj",
+				"quantity": 20
+			}
+			""";
+
+		RestAssured.given()
+			.contentType(ContentType.JSON)
+			.header("Authorization", "Bearer mock-token")
+			.body(requestBody)
+			.when()
+			.put("/api/inventory")
+			.then()
+			.statusCode(200);
+
+		OrderPlacedEvent orderPlacedEvent = new OrderPlacedEvent();
+		orderPlacedEvent.setOrderNumber("748f7f87ff78893983k");
+		orderPlacedEvent.setProductId("a876af73h3uf3hj");
+		orderPlacedEvent.setQuantity(10);
+		orderPlacedEvent.setEmail("test@example.com");
+		orderPlacedEvent.setFirstName("Alexander");
+		orderPlacedEvent.setLastName("Sidorov");
+
+		kafkaTemplate.send("order-placed", orderPlacedEvent);
+
+		try (Consumer<String, Object> consumer = consumerFactory.createConsumer("testNotificationService", "test-client")) {
+			consumer.subscribe(List.of("inventory-reserved"));
+
+			ConsumerRecords<String , Object> records =
+				KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(5));
+
+			Assertions.assertFalse(records.isEmpty());
+		}
 	}
 
 	@Test
