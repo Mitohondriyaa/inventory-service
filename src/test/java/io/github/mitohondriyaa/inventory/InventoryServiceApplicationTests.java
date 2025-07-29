@@ -1,27 +1,102 @@
 package io.github.mitohondriyaa.inventory;
 
+import io.github.mitohondriyaa.inventory.event.InventoryReservedEvent;
 import io.restassured.RestAssured;
+import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestConstructor;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
+@RequiredArgsConstructor
 class InventoryServiceApplicationTests {
-	@Container
+	static Network network = Network.newNetwork();
 	@ServiceConnection
-	static MySQLContainer<?> mySQLContainer =  new MySQLContainer<>("mysql:8");
+	@SuppressWarnings("resource")
+	static MySQLContainer<?> mySQLContainer =  new MySQLContainer<>("mysql:8")
+		.withNetwork(network)
+		.withNetworkAliases("mysql");
+	@ServiceConnection
+	static ConfluentKafkaContainer kafkaContainer = new ConfluentKafkaContainer("confluentinc/cp-kafka:7.4.0")
+		.withListener("kafka:19092")
+		.withNetwork(network)
+		.withNetworkAliases("kafka");
+	@SuppressWarnings("resource")
+	static GenericContainer<?> schemaRegistryContainer = new GenericContainer<>("confluentinc/cp-schema-registry:7.4.0")
+		.withEnv("SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS", "PLAINTEXT://kafka:19092")
+		.withEnv("SCHEMA_REGISTRY_LISTENERS", "http://0.0.0.0:8081")
+		.withEnv("SCHEMA_REGISTRY_HOST_NAME", "schema-registry")
+		.withExposedPorts(8081)
+		.withNetwork(network)
+		.withNetworkAliases("schema-registry")
+		.waitingFor(Wait.forHttp("/subjects"));
 	@LocalServerPort
 	Integer port;
+	@MockitoBean
+	JwtDecoder jwtDecoder;
+	final KafkaListenerEndpointRegistry kafkaListenerEndpointRegistry;
+	final KafkaTemplate<String, InventoryReservedEvent> kafkaTemplate;
+	final ConsumerFactory<String, Object> consumerFactory;
+
+	static {
+		mySQLContainer.start();
+		kafkaContainer.start();
+		schemaRegistryContainer.start();
+	}
+
+	@DynamicPropertySource
+	static void dynamicProperties(DynamicPropertyRegistry registry) {
+		registry.add("spring.kafka.producer.properties.schema.registry.url",
+			() -> "http://localhost:" + schemaRegistryContainer.getMappedPort(8081));
+		registry.add("spring.kafka.consumer.properties.schema.registry.url",
+			() -> "http://localhost:" + schemaRegistryContainer.getMappedPort(8081));
+	}
 
 	@BeforeEach
 	void setUp() {
 		RestAssured.baseURI = "http://localhost";
 		RestAssured.port = port;
+
+		Map<String, Object> realmAccess = new HashMap<>();
+		realmAccess.put("roles", List.of("INVENTORY_MANAGER"));
+
+		Jwt jwt = Jwt.withTokenValue("mock-token")
+			.header("alg", "none")
+			.claim("email", "test@example.com")
+			.claim("given_name", "Alexander")
+			.claim("family_name", "Sidorov")
+			.claim("sub", "h7g3hg383837h7733hf38h37")
+			.claim("realm_access", realmAccess)
+			.build();
+
+		when(jwtDecoder.decode(anyString())).thenReturn(jwt);
 	}
 
 	@Test
@@ -34,5 +109,12 @@ class InventoryServiceApplicationTests {
 				.then()
 				.statusCode(200)
 				.body(Matchers.equalTo("true"));
+	}
+
+	@AfterAll
+	static void stopContainers() {
+		mySQLContainer.stop();
+		kafkaContainer.stop();
+		schemaRegistryContainer.stop();
 	}
 }
