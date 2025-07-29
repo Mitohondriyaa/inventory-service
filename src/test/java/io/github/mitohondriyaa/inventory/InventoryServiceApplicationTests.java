@@ -221,6 +221,42 @@ class InventoryServiceApplicationTests {
 	}
 
 	@Test
+	void shouldGetAllInventories() {
+		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
+		productCreatedEvent.setProductId("a876af73h3uf3hj");
+
+		kafkaTemplate.send("product-created", productCreatedEvent);
+
+		Awaitility.await().atMost(Duration.ofSeconds(5))
+			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
+				.createInventory(any()));
+
+		String requestBody = """
+			{
+				"productId": "a876af73h3uf3hj",
+				"quantity": 20
+			}
+			""";
+
+		RestAssured.given()
+			.contentType(ContentType.JSON)
+			.header("Authorization", "Bearer mock-token")
+			.body(requestBody)
+			.when()
+			.put("/api/inventory")
+			.then()
+			.statusCode(200);
+
+		RestAssured.given()
+			.header("Authorization", "Bearer mock-token")
+			.when()
+			.get("/api/inventory")
+			.then()
+			.statusCode(200)
+			.body("size()", Matchers.greaterThan(0));
+	}
+
+	@Test
 	void shouldCheckStock() {
 		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
 		productCreatedEvent.setProductId("a876af73h3uf3hj");
@@ -256,6 +292,46 @@ class InventoryServiceApplicationTests {
 			.then()
 			.statusCode(200)
 			.body(Matchers.equalTo("true"));
+	}
+
+	@Test
+	void shouldGetInventoryByProductId() {
+		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
+		productCreatedEvent.setProductId("a876af73h3uf3hj");
+
+		kafkaTemplate.send("product-created", productCreatedEvent);
+
+		Awaitility.await().atMost(Duration.ofSeconds(5))
+			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
+				.createInventory(any()));
+
+		String requestBody = """
+			{
+				"productId": "a876af73h3uf3hj",
+				"quantity": 20
+			}
+			""";
+
+		RestAssured.given()
+			.contentType(ContentType.JSON)
+			.header("Authorization", "Bearer mock-token")
+			.body(requestBody)
+			.when()
+			.put("/api/inventory")
+			.then()
+			.statusCode(200)
+			.extract()
+			.path("id");
+
+		RestAssured.given()
+			.header("Authorization", "Bearer mock-token")
+			.when()
+			.get("/api/inventory/a876af73h3uf3hj")
+			.then()
+			.statusCode(200)
+			.body("id", Matchers.notNullValue())
+			.body("productId", Matchers.equalTo("a876af73h3uf3hj"))
+			.body("quantity", Matchers.equalTo(20));
 	}
 
 	@AfterEach
