@@ -3,6 +3,7 @@ package io.github.mitohondriyaa.inventory;
 import io.github.mitohondriyaa.inventory.service.InventoryService;
 import io.github.mitohondriyaa.order.event.OrderPlacedEvent;
 import io.github.mitohondriyaa.product.event.ProductCreatedEvent;
+import io.github.mitohondriyaa.product.event.ProductDeletedEvent;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import lombok.RequiredArgsConstructor;
@@ -362,6 +363,18 @@ class InventoryServiceApplicationTests {
 			.statusCode(200)
 			.extract()
 			.path("id");
+	}
+
+	@Test
+	void shouldDeleteInventoryByProductId() {
+		ProductDeletedEvent productDeletedEvent = new ProductDeletedEvent();
+		productDeletedEvent.setProductId("a876af73h3uf3hj");
+
+		kafkaTemplate.send("product-deleted", productDeletedEvent);
+
+		Awaitility.await().atMost(Duration.ofSeconds(5))
+			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
+				.deleteInventoryByProductID(eq(productDeletedEvent)));
 	}
 
 	@AfterEach
