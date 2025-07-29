@@ -125,10 +125,11 @@ class InventoryServiceApplicationTests {
 	@Test
 	void shouldCheckStock() {
 		RestAssured.given()
-				.queryParam("skuCode", "iPhone_15")
+				.header("Authorization", "Bearer mock-token")
+				.queryParam("productId", "iPhone_15")
 				.queryParam("quantity", 100)
 				.when()
-				.get("/api/inventory")
+				.get("/api/inventory/check")
 				.then()
 				.statusCode(200)
 				.body(Matchers.equalTo("true"));
