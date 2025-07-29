@@ -172,6 +172,53 @@ class InventoryServiceApplicationTests {
 	}
 
 	@Test
+	void shouldDeductStockWhenQuantityIsNotEnough() throws InterruptedException {
+		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
+		productCreatedEvent.setProductId("a876af73h3uf3hj");
+
+		kafkaTemplate.send("product-created", productCreatedEvent);
+
+		Awaitility.await().atMost(Duration.ofSeconds(5))
+			.untilAsserted(() -> verify(inventoryService)
+				.createInventory(any()));
+
+		String requestBody = """
+			{
+				"productId": "a876af73h3uf3hj",
+				"quantity": 20
+			}
+			""";
+
+		RestAssured.given()
+			.contentType(ContentType.JSON)
+			.header("Authorization", "Bearer mock-token")
+			.body(requestBody)
+			.when()
+			.put("/api/inventory")
+			.then()
+			.statusCode(200);
+
+		OrderPlacedEvent orderPlacedEvent = new OrderPlacedEvent();
+		orderPlacedEvent.setOrderNumber("748f7f87ff78893983k");
+		orderPlacedEvent.setProductId("a876af73h3uf3hj");
+		orderPlacedEvent.setQuantity(25);
+		orderPlacedEvent.setEmail("test@example.com");
+		orderPlacedEvent.setFirstName("Alexander");
+		orderPlacedEvent.setLastName("Sidorov");
+
+		kafkaTemplate.send("order-placed", orderPlacedEvent);
+
+		try (Consumer<String, Object> consumer = consumerFactory.createConsumer("testNotificationService", "test-client")) {
+			consumer.subscribe(List.of("inventory-rejected"));
+
+			ConsumerRecords<String , Object> records =
+				KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(5));
+
+			Assertions.assertFalse(records.isEmpty());
+		}
+	}
+
+	@Test
 	void shouldCheckStock() {
 		RestAssured.given()
 				.header("Authorization", "Bearer mock-token")
