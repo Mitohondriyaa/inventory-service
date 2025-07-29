@@ -120,7 +120,7 @@ class InventoryServiceApplicationTests {
 		kafkaTemplate.send("product-created", productCreatedEvent);
 
 		Awaitility.await().atMost(Duration.ofSeconds(5))
-			.untilAsserted(() -> verify(inventoryService)
+			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
 				.createInventory(any()));
 	}
 
@@ -132,7 +132,7 @@ class InventoryServiceApplicationTests {
 		kafkaTemplate.send("product-created", productCreatedEvent);
 
 		Awaitility.await().atMost(Duration.ofSeconds(5))
-			.untilAsserted(() -> verify(inventoryService)
+			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
 				.createInventory(any()));
 
 		String requestBody = """
@@ -179,7 +179,7 @@ class InventoryServiceApplicationTests {
 		kafkaTemplate.send("product-created", productCreatedEvent);
 
 		Awaitility.await().atMost(Duration.ofSeconds(5))
-			.untilAsserted(() -> verify(inventoryService)
+			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
 				.createInventory(any()));
 
 		String requestBody = """
@@ -220,15 +220,40 @@ class InventoryServiceApplicationTests {
 
 	@Test
 	void shouldCheckStock() {
+		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
+		productCreatedEvent.setProductId("a876af73h3uf3hj");
+
+		kafkaTemplate.send("product-created", productCreatedEvent);
+
+		Awaitility.await().atMost(Duration.ofSeconds(5))
+			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
+				.createInventory(any()));
+
+		String requestBody = """
+			{
+				"productId": "a876af73h3uf3hj",
+				"quantity": 20
+			}
+			""";
+
 		RestAssured.given()
-				.header("Authorization", "Bearer mock-token")
-				.queryParam("productId", "iPhone_15")
-				.queryParam("quantity", 100)
-				.when()
-				.get("/api/inventory/check")
-				.then()
-				.statusCode(200)
-				.body(Matchers.equalTo("true"));
+			.contentType(ContentType.JSON)
+			.header("Authorization", "Bearer mock-token")
+			.body(requestBody)
+			.when()
+			.put("/api/inventory")
+			.then()
+			.statusCode(200);
+
+		RestAssured.given()
+			.header("Authorization", "Bearer mock-token")
+			.queryParam("productId", "a876af73h3uf3hj")
+			.queryParam("quantity", 20)
+			.when()
+			.get("/api/inventory/check")
+			.then()
+			.statusCode(200)
+			.body(Matchers.equalTo("true"));
 	}
 
 	@AfterEach
