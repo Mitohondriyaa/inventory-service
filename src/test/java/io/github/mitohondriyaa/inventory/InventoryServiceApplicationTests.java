@@ -334,6 +334,36 @@ class InventoryServiceApplicationTests {
 			.body("quantity", Matchers.equalTo(20));
 	}
 
+	@Test
+	void shouldUpdateInventoryByProductId() {
+		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
+		productCreatedEvent.setProductId("a876af73h3uf3hj");
+
+		kafkaTemplate.send("product-created", productCreatedEvent);
+
+		Awaitility.await().atMost(Duration.ofSeconds(5))
+			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
+				.createInventory(any()));
+
+		String requestBody = """
+			{
+				"productId": "a876af73h3uf3hj",
+				"quantity": 20
+			}
+			""";
+
+		RestAssured.given()
+			.contentType(ContentType.JSON)
+			.header("Authorization", "Bearer mock-token")
+			.body(requestBody)
+			.when()
+			.put("/api/inventory")
+			.then()
+			.statusCode(200)
+			.extract()
+			.path("id");
+	}
+
 	@AfterEach
 	void tearDown() {
 		kafkaListenerEndpointRegistry.getAllListenerContainers()
