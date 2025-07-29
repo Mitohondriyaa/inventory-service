@@ -20,6 +20,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestConstructor;
@@ -42,6 +43,7 @@ import static org.mockito.Mockito.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 @RequiredArgsConstructor
+@ActiveProfiles("test")
 class InventoryServiceApplicationTests {
 	static Network network = Network.newNetwork();
 	@ServiceConnection
