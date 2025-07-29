@@ -1,15 +1,18 @@
 package io.github.mitohondriyaa.inventory;
 
-import io.github.mitohondriyaa.inventory.event.InventoryReservedEvent;
+import io.github.mitohondriyaa.inventory.service.InventoryService;
+import io.github.mitohondriyaa.product.event.ProductCreatedEvent;
 import io.restassured.RestAssured;
 import lombok.RequiredArgsConstructor;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.context.Lifecycle;
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -19,19 +22,20 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestConstructor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.kafka.ConfluentKafkaContainer;
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
@@ -62,8 +66,10 @@ class InventoryServiceApplicationTests {
 	@MockitoBean
 	JwtDecoder jwtDecoder;
 	final KafkaListenerEndpointRegistry kafkaListenerEndpointRegistry;
-	final KafkaTemplate<String, InventoryReservedEvent> kafkaTemplate;
+	final KafkaTemplate<String, Object> kafkaTemplate;
 	final ConsumerFactory<String, Object> consumerFactory;
+	@MockitoSpyBean
+	InventoryService inventoryService;
 
 	static {
 		mySQLContainer.start();
@@ -80,7 +86,7 @@ class InventoryServiceApplicationTests {
 	}
 
 	@BeforeEach
-	void setUp() {
+	void setUp() throws InterruptedException {
 		RestAssured.baseURI = "http://localhost";
 		RestAssured.port = port;
 
@@ -97,6 +103,23 @@ class InventoryServiceApplicationTests {
 			.build();
 
 		when(jwtDecoder.decode(anyString())).thenReturn(jwt);
+
+		kafkaListenerEndpointRegistry.getAllListenerContainers()
+			.forEach(Lifecycle::start);
+
+		Thread.sleep(5000);
+	}
+
+	@Test
+	void shouldCreateInventory() {
+		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
+		productCreatedEvent.setProductId("a876af73h3uf3hj");
+
+		kafkaTemplate.send("product-created", productCreatedEvent);
+
+		Awaitility.await().atMost(Duration.ofSeconds(5))
+			.untilAsserted(() -> verify(inventoryService)
+				.createInventory(any()));
 	}
 
 	@Test
@@ -109,6 +132,12 @@ class InventoryServiceApplicationTests {
 				.then()
 				.statusCode(200)
 				.body(Matchers.equalTo("true"));
+	}
+
+	@AfterEach
+	void tearDown() {
+		kafkaListenerEndpointRegistry.getAllListenerContainers()
+			.forEach(Lifecycle::stop);
 	}
 
 	@AfterAll
