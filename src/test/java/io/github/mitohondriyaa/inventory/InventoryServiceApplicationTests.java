@@ -1,6 +1,8 @@
 package io.github.mitohondriyaa.inventory;
 
+import io.github.mitohondriyaa.inventory.event.InventoryRejectedEvent;
 import io.github.mitohondriyaa.inventory.service.InventoryService;
+import io.github.mitohondriyaa.order.event.OrderCancelledEvent;
 import io.github.mitohondriyaa.order.event.OrderPlacedEvent;
 import io.github.mitohondriyaa.product.event.ProductCreatedEvent;
 import io.github.mitohondriyaa.product.event.ProductDeletedEvent;
@@ -128,7 +130,7 @@ class InventoryServiceApplicationTests {
 	}
 
 	@Test
-	void shouldDeductStockWhenQuantityIsEnough() throws InterruptedException {
+	void shouldDeductStockWhenQuantityIsEnough() {
 		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
 		productCreatedEvent.setProductId("a876af73h3uf3hj");
 
@@ -375,6 +377,28 @@ class InventoryServiceApplicationTests {
 		Awaitility.await().atMost(Duration.ofSeconds(5))
 			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
 				.deleteInventoryByProductID(eq(productDeletedEvent)));
+	}
+
+	@Test
+	void shouldRejectInventory() {
+		OrderCancelledEvent orderCancelledEvent = new OrderCancelledEvent();
+		orderCancelledEvent.setOrderNumber("748f7f87ff78893983k");
+		orderCancelledEvent.setProductId("a876af73h3uf3hj");
+		orderCancelledEvent.setQuantity(10);
+		orderCancelledEvent.setEmail("test@example.com");
+		orderCancelledEvent.setFirstName("Alexander");
+		orderCancelledEvent.setLastName("Sidorov");
+
+		kafkaTemplate.send("order-cancelled", orderCancelledEvent);
+
+		try (Consumer<String, Object> consumer = consumerFactory.createConsumer("testNotificationService", "test-client")) {
+			consumer.subscribe(List.of("inventory-rejected"));
+
+			ConsumerRecords<String , Object> records =
+				KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(5));
+
+			Assertions.assertFalse(records.isEmpty());
+		}
 	}
 
 	@AfterEach
