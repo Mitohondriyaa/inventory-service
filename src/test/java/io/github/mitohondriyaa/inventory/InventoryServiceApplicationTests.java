@@ -1,6 +1,7 @@
 package io.github.mitohondriyaa.inventory;
 
-import io.github.mitohondriyaa.inventory.event.InventoryRejectedEvent;
+import io.github.mitohondriyaa.inventory.model.Inventory;
+import io.github.mitohondriyaa.inventory.repository.InventoryRepository;
 import io.github.mitohondriyaa.inventory.service.InventoryService;
 import io.github.mitohondriyaa.order.event.OrderCancelledEvent;
 import io.github.mitohondriyaa.order.event.OrderPlacedEvent;
@@ -40,6 +41,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.mockito.Mockito.*;
 
@@ -68,6 +70,7 @@ class InventoryServiceApplicationTests {
 		.withNetwork(network)
 		.withNetworkAliases("schema-registry")
 		.waitingFor(Wait.forHttp("/subjects"));
+	static final String PRODUCT_ID = "a876af73h3uf3hj";
 	@LocalServerPort
 	Integer port;
 	@MockitoBean
@@ -75,6 +78,7 @@ class InventoryServiceApplicationTests {
 	final KafkaListenerEndpointRegistry kafkaListenerEndpointRegistry;
 	final KafkaTemplate<String, Object> kafkaTemplate;
 	final ConsumerFactory<String, Object> consumerFactory;
+	final InventoryRepository inventoryRepository;
 	@MockitoSpyBean
 	InventoryService inventoryService;
 
@@ -120,45 +124,38 @@ class InventoryServiceApplicationTests {
 	@Test
 	void shouldCreateInventory() {
 		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
-		productCreatedEvent.setProductId("a876af73h3uf3hj");
+		productCreatedEvent.setProductId(PRODUCT_ID);
 
 		kafkaTemplate.send("product-created", productCreatedEvent);
 
 		Awaitility.await().atMost(Duration.ofSeconds(5))
 			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
-				.createInventory(any()));
+				.createInventory(productCreatedEvent));
+
+		Awaitility.await().atMost(Duration.ofSeconds(5))
+			.untilAsserted(() -> {
+				Optional<Inventory> optionalInventory
+					= inventoryRepository.findByProductId(PRODUCT_ID);
+				optionalInventory
+					.ifPresentOrElse(inventory -> {
+						Assertions.assertNotNull(inventory.getId());
+						Assertions.assertEquals(PRODUCT_ID, inventory.getProductId());
+						Assertions.assertEquals(0, inventory.getQuantity());
+					}, () -> Assertions.fail("Inventory not found"));
+			});
 	}
 
 	@Test
 	void shouldDeductStockWhenQuantityIsEnough() {
-		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
-		productCreatedEvent.setProductId("a876af73h3uf3hj");
+		Inventory inventory = new Inventory();
+		inventory.setProductId(PRODUCT_ID);
+		inventory.setQuantity(20);
 
-		kafkaTemplate.send("product-created", productCreatedEvent);
-
-		Awaitility.await().atMost(Duration.ofSeconds(5))
-			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
-				.createInventory(any()));
-
-		String requestBody = """
-			{
-				"productId": "a876af73h3uf3hj",
-				"quantity": 20
-			}
-			""";
-
-		RestAssured.given()
-			.contentType(ContentType.JSON)
-			.header("Authorization", "Bearer mock-token")
-			.body(requestBody)
-			.when()
-			.put("/api/inventory")
-			.then()
-			.statusCode(200);
+		inventoryRepository.save(inventory);
 
 		OrderPlacedEvent orderPlacedEvent = new OrderPlacedEvent();
 		orderPlacedEvent.setOrderNumber("748f7f87ff78893983k");
-		orderPlacedEvent.setProductId("a876af73h3uf3hj");
+		orderPlacedEvent.setProductId(PRODUCT_ID);
 		orderPlacedEvent.setQuantity(10);
 		orderPlacedEvent.setEmail("test@example.com");
 		orderPlacedEvent.setFirstName("Alexander");
@@ -177,35 +174,16 @@ class InventoryServiceApplicationTests {
 	}
 
 	@Test
-	void shouldDeductStockWhenQuantityIsNotEnough() throws InterruptedException {
-		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
-		productCreatedEvent.setProductId("a876af73h3uf3hj");
+	void shouldDeductStockWhenQuantityIsNotEnough() {
+		Inventory inventory = new Inventory();
+		inventory.setProductId(PRODUCT_ID);
+		inventory.setQuantity(20);
 
-		kafkaTemplate.send("product-created", productCreatedEvent);
-
-		Awaitility.await().atMost(Duration.ofSeconds(5))
-			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
-				.createInventory(any()));
-
-		String requestBody = """
-			{
-				"productId": "a876af73h3uf3hj",
-				"quantity": 20
-			}
-			""";
-
-		RestAssured.given()
-			.contentType(ContentType.JSON)
-			.header("Authorization", "Bearer mock-token")
-			.body(requestBody)
-			.when()
-			.put("/api/inventory")
-			.then()
-			.statusCode(200);
+		inventoryRepository.save(inventory);
 
 		OrderPlacedEvent orderPlacedEvent = new OrderPlacedEvent();
 		orderPlacedEvent.setOrderNumber("748f7f87ff78893983k");
-		orderPlacedEvent.setProductId("a876af73h3uf3hj");
+		orderPlacedEvent.setProductId(PRODUCT_ID);
 		orderPlacedEvent.setQuantity(25);
 		orderPlacedEvent.setEmail("test@example.com");
 		orderPlacedEvent.setFirstName("Alexander");
@@ -225,30 +203,11 @@ class InventoryServiceApplicationTests {
 
 	@Test
 	void shouldGetAllInventories() {
-		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
-		productCreatedEvent.setProductId("a876af73h3uf3hj");
+		Inventory inventory = new Inventory();
+		inventory.setProductId(PRODUCT_ID);
+		inventory.setQuantity(20);
 
-		kafkaTemplate.send("product-created", productCreatedEvent);
-
-		Awaitility.await().atMost(Duration.ofSeconds(5))
-			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
-				.createInventory(any()));
-
-		String requestBody = """
-			{
-				"productId": "a876af73h3uf3hj",
-				"quantity": 20
-			}
-			""";
-
-		RestAssured.given()
-			.contentType(ContentType.JSON)
-			.header("Authorization", "Bearer mock-token")
-			.body(requestBody)
-			.when()
-			.put("/api/inventory")
-			.then()
-			.statusCode(200);
+		inventoryRepository.save(inventory);
 
 		RestAssured.given()
 			.header("Authorization", "Bearer mock-token")
@@ -261,34 +220,15 @@ class InventoryServiceApplicationTests {
 
 	@Test
 	void shouldCheckStock() {
-		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
-		productCreatedEvent.setProductId("a876af73h3uf3hj");
+		Inventory inventory = new Inventory();
+		inventory.setProductId(PRODUCT_ID);
+		inventory.setQuantity(20);
 
-		kafkaTemplate.send("product-created", productCreatedEvent);
-
-		Awaitility.await().atMost(Duration.ofSeconds(5))
-			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
-				.createInventory(any()));
-
-		String requestBody = """
-			{
-				"productId": "a876af73h3uf3hj",
-				"quantity": 20
-			}
-			""";
-
-		RestAssured.given()
-			.contentType(ContentType.JSON)
-			.header("Authorization", "Bearer mock-token")
-			.body(requestBody)
-			.when()
-			.put("/api/inventory")
-			.then()
-			.statusCode(200);
+		inventoryRepository.save(inventory);
 
 		RestAssured.given()
 			.header("Authorization", "Bearer mock-token")
-			.queryParam("productId", "a876af73h3uf3hj")
+			.queryParam("productId", PRODUCT_ID)
 			.queryParam("quantity", 20)
 			.when()
 			.get("/api/inventory/check")
@@ -299,61 +239,37 @@ class InventoryServiceApplicationTests {
 
 	@Test
 	void shouldGetInventoryByProductId() {
-		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
-		productCreatedEvent.setProductId("a876af73h3uf3hj");
+		Inventory inventory = new Inventory();
+		inventory.setProductId(PRODUCT_ID);
+		inventory.setQuantity(20);
 
-		kafkaTemplate.send("product-created", productCreatedEvent);
-
-		Awaitility.await().atMost(Duration.ofSeconds(5))
-			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
-				.createInventory(any()));
-
-		String requestBody = """
-			{
-				"productId": "a876af73h3uf3hj",
-				"quantity": 20
-			}
-			""";
-
-		RestAssured.given()
-			.contentType(ContentType.JSON)
-			.header("Authorization", "Bearer mock-token")
-			.body(requestBody)
-			.when()
-			.put("/api/inventory")
-			.then()
-			.statusCode(200)
-			.extract()
-			.path("id");
+		inventoryRepository.save(inventory);
 
 		RestAssured.given()
 			.header("Authorization", "Bearer mock-token")
 			.when()
-			.get("/api/inventory/a876af73h3uf3hj")
+			.get("/api/inventory/" + PRODUCT_ID)
 			.then()
 			.statusCode(200)
 			.body("id", Matchers.notNullValue())
-			.body("productId", Matchers.equalTo("a876af73h3uf3hj"))
+			.body("productId", Matchers.equalTo(PRODUCT_ID))
 			.body("quantity", Matchers.equalTo(20));
 	}
 
 	@Test
 	void shouldUpdateInventoryByProductId() {
-		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
-		productCreatedEvent.setProductId("a876af73h3uf3hj");
+		Inventory inventory = new Inventory();
+		inventory.setProductId(PRODUCT_ID);
+		inventory.setQuantity(20);
 
-		kafkaTemplate.send("product-created", productCreatedEvent);
-
-		Awaitility.await().atMost(Duration.ofSeconds(5))
-			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
-				.createInventory(any()));
+		inventoryRepository.save(inventory);
 
 		String requestBody = """
 			{
-				"productId": "a876af73h3uf3hj",
-				"quantity": 20
+				"productId": "%s",
+				"quantity": 40
 			}
-			""";
+			""".formatted(PRODUCT_ID);
 
 		RestAssured.given()
 			.contentType(ContentType.JSON)
@@ -363,27 +279,47 @@ class InventoryServiceApplicationTests {
 			.put("/api/inventory")
 			.then()
 			.statusCode(200)
-			.extract()
-			.path("id");
+			.body("id", Matchers.notNullValue())
+			.body("productId", Matchers.equalTo(PRODUCT_ID))
+			.body("quantity", Matchers.equalTo(40));
 	}
 
 	@Test
 	void shouldDeleteInventoryByProductId() {
+		Inventory inventory = new Inventory();
+		inventory.setProductId(PRODUCT_ID);
+		inventory.setQuantity(20);
+
+		inventoryRepository.save(inventory);
+
 		ProductDeletedEvent productDeletedEvent = new ProductDeletedEvent();
-		productDeletedEvent.setProductId("a876af73h3uf3hj");
+		productDeletedEvent.setProductId(PRODUCT_ID);
 
 		kafkaTemplate.send("product-deleted", productDeletedEvent);
 
 		Awaitility.await().atMost(Duration.ofSeconds(5))
 			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
 				.deleteInventoryByProductID(eq(productDeletedEvent)));
+
+		Awaitility.await().atMost(Duration.ofSeconds(5))
+			.untilAsserted(() -> {
+				Optional<Inventory> optionalInventory
+					= inventoryRepository.findByProductId(PRODUCT_ID);
+				Assertions.assertTrue(optionalInventory.isEmpty());
+			});
 	}
 
 	@Test
 	void shouldRejectInventory() {
+		Inventory inventory = new Inventory();
+		inventory.setProductId(PRODUCT_ID);
+		inventory.setQuantity(20);
+
+		inventoryRepository.save(inventory);
+
 		OrderCancelledEvent orderCancelledEvent = new OrderCancelledEvent();
 		orderCancelledEvent.setOrderNumber("748f7f87ff78893983k");
-		orderCancelledEvent.setProductId("a876af73h3uf3hj");
+		orderCancelledEvent.setProductId(PRODUCT_ID);
 		orderCancelledEvent.setQuantity(10);
 		orderCancelledEvent.setEmail("test@example.com");
 		orderCancelledEvent.setFirstName("Alexander");
@@ -399,12 +335,20 @@ class InventoryServiceApplicationTests {
 
 			Assertions.assertFalse(records.isEmpty());
 		}
+
+		@SuppressWarnings("OptionalGetWithoutIsPresent")
+		Inventory verifiableInventory = inventoryRepository
+			.findByProductId(PRODUCT_ID).get();
+
+		Assertions.assertEquals(30, verifiableInventory.getQuantity());
 	}
 
 	@AfterEach
 	void tearDown() {
 		kafkaListenerEndpointRegistry.getAllListenerContainers()
 			.forEach(Lifecycle::stop);
+
+		inventoryRepository.deleteAll();
 	}
 
 	@AfterAll
