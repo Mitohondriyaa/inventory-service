@@ -1,9 +1,13 @@
 package io.github.mitohondriyaa.inventory.config;
 
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.xml.bind.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.hibernate.type.SerializationException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.listener.DefaultErrorHandler;
@@ -15,8 +19,7 @@ public class KafkaConfig {
     @Bean
     public DefaultErrorHandler errorHandler() {
         FixedBackOff fixedBackOff = new FixedBackOff(1000, 3);
-
-        return new DefaultErrorHandler(
+        DefaultErrorHandler errorHandler =  new DefaultErrorHandler(
             (record, exception) -> {
                 log.error("Kafka error. Topic: {}, Key: {}, Value: {}, Exception: {}",
                     record.topic(),
@@ -27,6 +30,17 @@ public class KafkaConfig {
             },
             fixedBackOff
         );
+
+        errorHandler.addNotRetryableExceptions(
+            IllegalArgumentException.class,
+            DataIntegrityViolationException.class,
+            EntityNotFoundException.class,
+            IllegalStateException.class,
+            ValidationException.class,
+            SerializationException.class
+        );
+
+        return errorHandler;
     }
 
     @Bean
