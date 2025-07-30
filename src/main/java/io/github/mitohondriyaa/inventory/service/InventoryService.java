@@ -17,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,7 @@ import java.util.List;
 public class InventoryService {
     private final InventoryRepository inventoryRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final RedisService redisService;
 
     @KafkaListener(topics = "product-created")
     public void createInventory(ProductCreatedEvent productCreatedEvent) {
@@ -130,27 +133,32 @@ public class InventoryService {
     }
 
     @KafkaListener(topics = "order-cancelled")
-    public void orderCancelled(OrderCancelledEvent orderCancelledEvent) {
-        inventoryRepository.increaseQuantityByProductId(
-            orderCancelledEvent.getProductId().toString(),
-            orderCancelledEvent.getQuantity()
-        );
+    public void orderCancelled(
+        @Payload OrderCancelledEvent orderCancelledEvent,
+        @Header("messageId") String messageId
+    ) {
+        if (redisService.setValue(messageId)) {
+            inventoryRepository.increaseQuantityByProductId(
+                orderCancelledEvent.getProductId().toString(),
+                orderCancelledEvent.getQuantity()
+            );
 
-        InventoryRejectedEvent inventoryRejectedEvent
-            = new InventoryRejectedEvent();
-        inventoryRejectedEvent.setOrderNumber(
-            orderCancelledEvent.getOrderNumber()
-        );
-        inventoryRejectedEvent.setEmail(
-            orderCancelledEvent.getEmail()
-        );
-        inventoryRejectedEvent.setFirstName(
-            orderCancelledEvent.getFirstName()
-        );
-        inventoryRejectedEvent.setLastName(
-            orderCancelledEvent.getLastName()
-        );
+            InventoryRejectedEvent inventoryRejectedEvent
+                = new InventoryRejectedEvent();
+            inventoryRejectedEvent.setOrderNumber(
+                orderCancelledEvent.getOrderNumber()
+            );
+            inventoryRejectedEvent.setEmail(
+                orderCancelledEvent.getEmail()
+            );
+            inventoryRejectedEvent.setFirstName(
+                orderCancelledEvent.getFirstName()
+            );
+            inventoryRejectedEvent.setLastName(
+                orderCancelledEvent.getLastName()
+            );
 
-        kafkaTemplate.send("inventory-rejected", inventoryRejectedEvent);
+            kafkaTemplate.send("inventory-rejected", inventoryRejectedEvent);
+        }
     }
 }
