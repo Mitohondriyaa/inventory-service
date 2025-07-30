@@ -1,5 +1,7 @@
 package io.github.mitohondriyaa.inventory;
 
+import com.redis.testcontainers.RedisContainer;
+import io.github.mitohondriyaa.inventory.config.TestRedisConfig;
 import io.github.mitohondriyaa.inventory.model.Inventory;
 import io.github.mitohondriyaa.inventory.repository.InventoryRepository;
 import io.github.mitohondriyaa.inventory.service.InventoryService;
@@ -12,12 +14,14 @@ import io.restassured.http.ContentType;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.Lifecycle;
+import org.springframework.context.annotation.Import;
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -38,10 +42,7 @@ import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static org.mockito.Mockito.*;
 
@@ -49,6 +50,7 @@ import static org.mockito.Mockito.*;
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 @RequiredArgsConstructor
 @ActiveProfiles("test")
+@Import(TestRedisConfig.class)
 class InventoryServiceApplicationTests {
 	static Network network = Network.newNetwork();
 	@ServiceConnection
@@ -70,6 +72,10 @@ class InventoryServiceApplicationTests {
 		.withNetwork(network)
 		.withNetworkAliases("schema-registry")
 		.waitingFor(Wait.forHttp("/subjects"));
+	static RedisContainer redisContainer = new  RedisContainer("redis:8.0")
+		.withExposedPorts(6379)
+		.withNetwork(network)
+		.withNetworkAliases("redis");
 	static final String PRODUCT_ID = "a876af73h3uf3hj";
 	@LocalServerPort
 	Integer port;
@@ -86,6 +92,7 @@ class InventoryServiceApplicationTests {
 		mySQLContainer.start();
 		kafkaContainer.start();
 		schemaRegistryContainer.start();
+		redisContainer.start();
 	}
 
 	@DynamicPropertySource
@@ -94,6 +101,8 @@ class InventoryServiceApplicationTests {
 			() -> "http://localhost:" + schemaRegistryContainer.getMappedPort(8081));
 		registry.add("spring.kafka.consumer.properties.schema.registry.url",
 			() -> "http://localhost:" + schemaRegistryContainer.getMappedPort(8081));
+		registry.add("redis.port",
+			() -> redisContainer.getMappedPort(6379));
 	}
 
 	@BeforeEach
@@ -126,7 +135,11 @@ class InventoryServiceApplicationTests {
 		ProductCreatedEvent productCreatedEvent = new ProductCreatedEvent();
 		productCreatedEvent.setProductId(PRODUCT_ID);
 
-		kafkaTemplate.send("product-created", productCreatedEvent);
+		ProducerRecord<String, Object> producerRecord
+			= new ProducerRecord<>("product-created", productCreatedEvent);
+		producerRecord.headers().add("messageId", UUID.randomUUID().toString().getBytes());
+
+		kafkaTemplate.send(producerRecord);
 
 		Awaitility.await().atMost(Duration.ofSeconds(5))
 			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
@@ -161,7 +174,11 @@ class InventoryServiceApplicationTests {
 		orderPlacedEvent.setFirstName("Alexander");
 		orderPlacedEvent.setLastName("Sidorov");
 
-		kafkaTemplate.send("order-placed", orderPlacedEvent);
+		ProducerRecord<String, Object> producerRecord
+			= new ProducerRecord<>("order-placed", orderPlacedEvent);
+		producerRecord.headers().add("messageId", UUID.randomUUID().toString().getBytes());
+
+		kafkaTemplate.send(producerRecord);
 
 		try (Consumer<String, Object> consumer = consumerFactory.createConsumer("testNotificationService", "test-client")) {
 			consumer.subscribe(List.of("inventory-reserved"));
@@ -189,7 +206,11 @@ class InventoryServiceApplicationTests {
 		orderPlacedEvent.setFirstName("Alexander");
 		orderPlacedEvent.setLastName("Sidorov");
 
-		kafkaTemplate.send("order-placed", orderPlacedEvent);
+		ProducerRecord<String, Object> producerRecord
+			= new ProducerRecord<>("order-placed", orderPlacedEvent);
+		producerRecord.headers().add("messageId", UUID.randomUUID().toString().getBytes());
+
+		kafkaTemplate.send(producerRecord);
 
 		try (Consumer<String, Object> consumer = consumerFactory.createConsumer("testNotificationService", "test-client")) {
 			consumer.subscribe(List.of("inventory-rejected"));
@@ -295,7 +316,11 @@ class InventoryServiceApplicationTests {
 		ProductDeletedEvent productDeletedEvent = new ProductDeletedEvent();
 		productDeletedEvent.setProductId(PRODUCT_ID);
 
-		kafkaTemplate.send("product-deleted", productDeletedEvent);
+		ProducerRecord<String, Object> producerRecord
+			= new ProducerRecord<>("product-deleted", productDeletedEvent);
+		producerRecord.headers().add("messageId", UUID.randomUUID().toString().getBytes());
+
+		kafkaTemplate.send(producerRecord);
 
 		Awaitility.await().atMost(Duration.ofSeconds(5))
 			.untilAsserted(() -> verify(inventoryService, atLeastOnce())
@@ -325,7 +350,11 @@ class InventoryServiceApplicationTests {
 		orderCancelledEvent.setFirstName("Alexander");
 		orderCancelledEvent.setLastName("Sidorov");
 
-		kafkaTemplate.send("order-cancelled", orderCancelledEvent);
+		ProducerRecord<String, Object> producerRecord
+			= new ProducerRecord<>("order-cancelled", orderCancelledEvent);
+		producerRecord.headers().add("messageId", UUID.randomUUID().toString().getBytes());
+
+		kafkaTemplate.send(producerRecord);
 
 		try (Consumer<String, Object> consumer = consumerFactory.createConsumer("testNotificationService", "test-client")) {
 			consumer.subscribe(List.of("inventory-rejected"));
@@ -356,5 +385,7 @@ class InventoryServiceApplicationTests {
 		mySQLContainer.stop();
 		kafkaContainer.stop();
 		schemaRegistryContainer.stop();
+		redisContainer.stop();
+		network.close();
 	}
 }
