@@ -14,6 +14,7 @@ import io.github.mitohondriyaa.product.event.ProductCreatedEvent;
 import io.github.mitohondriyaa.product.event.ProductDeletedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -65,7 +67,11 @@ public class InventoryService {
                 orderPlacedEvent.getLastName()
             );
 
-            kafkaTemplate.send("inventory-rejected", inventoryRejectedEvent);
+            ProducerRecord<String, Object> producerRecord
+                = new ProducerRecord<>("inventory-rejected", inventoryRejectedEvent);
+            producerRecord.headers().add("messageId", UUID.randomUUID().toString().getBytes());
+
+            kafkaTemplate.send(producerRecord);
         } else {
             InventoryReservedEvent inventoryReservedEvent
                 = new InventoryReservedEvent();
@@ -82,7 +88,11 @@ public class InventoryService {
                 orderPlacedEvent.getLastName()
             );
 
-            kafkaTemplate.sendDefault(inventoryReservedEvent);
+            ProducerRecord<String, Object> producerRecord
+                = new ProducerRecord<>("inventory-reserved", inventoryReservedEvent);
+            producerRecord.headers().add("messageId", UUID.randomUUID().toString().getBytes());
+
+            kafkaTemplate.send(producerRecord);
         }
     }
 
@@ -158,7 +168,11 @@ public class InventoryService {
                 orderCancelledEvent.getLastName()
             );
 
-            kafkaTemplate.send("inventory-rejected", inventoryRejectedEvent);
+            ProducerRecord<String, Object> producerRecord
+                = new ProducerRecord<>("inventory-rejected", inventoryRejectedEvent);
+            producerRecord.headers().add("messageId", UUID.randomUUID().toString().getBytes());
+
+            kafkaTemplate.send(producerRecord);
         }
     }
 }
