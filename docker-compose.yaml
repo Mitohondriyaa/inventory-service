@@ -9,3 +9,10 @@ services:
     volumes:
       - ./mysql:/var/lib/mysql
       - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+  redis_idempotency:
+    image: redis:8.0
+    container_name: redis_idempotency_inventory
+    ports:
+      - "6382:6379"
+    volumes:
+      - ./redis-idempotency-data:/data
