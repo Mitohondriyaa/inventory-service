@@ -1,6 +1,7 @@
 HELP.md
 target/
 mysql/
+redis-idempotency-data/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
